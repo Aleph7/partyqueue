@@ -4,6 +4,8 @@ import {
   Flame,
   ListOrdered,
   Lock,
+  Maximize2,
+  Minimize2,
   Pause,
   Play,
   Radio,
@@ -26,6 +28,7 @@ import { QueueList } from "../components/QueueList";
 import { YouTubeStagePlayer } from "../components/YouTubeStagePlayer";
 import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
+import { useFullscreen } from "../hooks/useFullscreen";
 import { useMediaSession } from "../hooks/useMediaSession";
 import { useRoom } from "../hooks/useRoom";
 import { useYouTubePlayer } from "../hooks/useYouTubePlayer";
@@ -63,6 +66,11 @@ export function HostPage() {
   });
   const [stageMode, setStageMode] = useState<"video" | "cover">("video");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const {
+    isFullscreen: isStageFullscreen,
+    isSupported: isFullscreenSupported,
+    toggleFullscreen: toggleStageFullscreen,
+  } = useFullscreen();
 
   const currentTrackId = room.currentTrack?.id ?? null;
   const currentVideoId = room.currentTrack?.videoId ?? null;
@@ -277,11 +285,19 @@ export function HostPage() {
       } else if (e.shiftKey && (e.key === "N" || e.key === "n")) {
         e.preventDefault();
         handleSkipNext();
+      } else if (
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        (e.key === "f" || e.key === "F")
+      ) {
+        e.preventDefault();
+        void toggleStageFullscreen();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSkipNext, handleTogglePlayPause, isUnlocked]);
+  }, [handleSkipNext, handleTogglePlayPause, isUnlocked, toggleStageFullscreen]);
 
   const guestUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -378,6 +394,24 @@ export function HostPage() {
             {t.guestRemoteLink}
           </Link>
 
+          {isFullscreenSupported && (
+            <button
+              type="button"
+              onClick={() => void toggleStageFullscreen()}
+              title={isStageFullscreen ? t.exitFullscreen : t.fullscreen}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/15"
+            >
+              {isStageFullscreen ? (
+                <Minimize2 className="h-3.5 w-3.5 text-cyan-300" />
+              ) : (
+                <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
+              )}
+              <span className="hidden sm:inline">
+                {isStageFullscreen ? t.exitFullscreen : t.fullscreen}
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
@@ -399,7 +433,11 @@ export function HostPage() {
       </header>
 
       {/* Main Mac Stage Layout */}
-      <main className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 sm:px-6 lg:grid-cols-12">
+      <main
+        className={`relative z-10 mx-auto grid grid-cols-1 gap-6 px-4 sm:px-6 lg:grid-cols-12 ${
+          isStageFullscreen ? "max-w-[1600px]" : "max-w-7xl"
+        }`}
+      >
         {/* Left 8 cols: Hero Player + Metadata + Host Control Deck */}
         <section className="flex flex-col gap-5 lg:col-span-8">
           {error && (
@@ -419,6 +457,8 @@ export function HostPage() {
               void updateRoomSettings({ isPlaying: true });
             }}
             onToggleStageMode={setStageMode}
+            onTogglePlayPause={handleTogglePlayPause}
+            onSkipNext={handleSkipNext}
           />
 
           {/* Now Playing Typography & Progress Deck */}

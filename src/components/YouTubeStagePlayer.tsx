@@ -1,6 +1,16 @@
-import type { RefObject } from "react";
-import { Disc3, Play, Sparkles, Video } from "lucide-react";
+import { useRef, type RefObject } from "react";
+import {
+  Disc3,
+  Maximize2,
+  Minimize2,
+  Pause,
+  Play,
+  SkipForward,
+  Sparkles,
+  Video,
+} from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useFullscreen } from "../hooks/useFullscreen";
 import type { CurrentTrack } from "../types/jukebox";
 
 interface YouTubeStagePlayerProps {
@@ -11,6 +21,8 @@ interface YouTubeStagePlayerProps {
   needsInteraction: boolean;
   onEnableAudio: () => void;
   onToggleStageMode: (mode: "video" | "cover") => void;
+  onTogglePlayPause?: () => void;
+  onSkipNext?: () => void;
 }
 
 export function YouTubeStagePlayer({
@@ -21,41 +33,78 @@ export function YouTubeStagePlayer({
   needsInteraction,
   onEnableAudio,
   onToggleStageMode,
+  onTogglePlayPause,
+  onSkipNext,
 }: YouTubeStagePlayerProps) {
   const { t } = useLanguage();
+  const stageWrapperRef = useRef<HTMLDivElement | null>(null);
+  const {
+    isFullscreen: isPlayerFullscreen,
+    isSupported: isFullscreenSupported,
+    toggleFullscreen,
+  } = useFullscreen(stageWrapperRef);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-black/70 shadow-2xl">
-      {/* Stage mode pill */}
-      <div className="absolute right-4 top-4 z-30 inline-flex items-center rounded-full border border-white/15 bg-black/65 p-1 backdrop-blur-xl">
-        <button
-          type="button"
-          onClick={() => onToggleStageMode("video")}
-          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-            stageMode === "video"
-              ? "bg-white text-zinc-950 shadow-sm"
-              : "text-zinc-300 hover:text-white"
-          }`}
-        >
-          <Video className="h-3.5 w-3.5" />
-          {t.videoStageMode}
-        </button>
-        <button
-          type="button"
-          onClick={() => onToggleStageMode("cover")}
-          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-            stageMode === "cover"
-              ? "bg-white text-zinc-950 shadow-sm"
-              : "text-zinc-300 hover:text-white"
-          }`}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          {t.coverArtMode}
-        </button>
+    <div
+      ref={stageWrapperRef}
+      className={`relative overflow-hidden bg-black/70 shadow-2xl ${
+        isPlayerFullscreen
+          ? "h-screen w-screen rounded-none border-0 bg-[#07070b]"
+          : "rounded-3xl border border-white/15"
+      }`}
+    >
+      {/* Top-right stage mode & player fullscreen controls */}
+      <div className="absolute right-4 top-4 z-30 flex items-center gap-2">
+        <div className="inline-flex items-center rounded-full border border-white/15 bg-black/65 p-1 backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={() => onToggleStageMode("video")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              stageMode === "video"
+                ? "bg-white text-zinc-950 shadow-sm"
+                : "text-zinc-300 hover:text-white"
+            }`}
+          >
+            <Video className="h-3.5 w-3.5" />
+            {t.videoStageMode}
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleStageMode("cover")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              stageMode === "cover"
+                ? "bg-white text-zinc-950 shadow-sm"
+                : "text-zinc-300 hover:text-white"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {t.coverArtMode}
+          </button>
+        </div>
+
+        {isFullscreenSupported && (
+          <button
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            title={isPlayerFullscreen ? t.exitFullscreen : t.playerFullscreen}
+            aria-label={isPlayerFullscreen ? t.exitFullscreen : t.playerFullscreen}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/65 text-zinc-200 backdrop-blur-xl transition hover:bg-white/20 hover:text-white"
+          >
+            {isPlayerFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
-      {/* 16:9 Stage Container: iframe stays mounted at all times so toggling modes never interrupts playback */}
-      <div className="relative aspect-video w-full overflow-hidden bg-zinc-950">
+      {/* Stage Container: iframe stays mounted at all times so toggling modes never interrupts playback */}
+      <div
+        className={`relative w-full overflow-hidden bg-zinc-950 ${
+          isPlayerFullscreen ? "h-screen w-screen" : "aspect-video"
+        }`}
+      >
         <div
           ref={containerRef}
           className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${
@@ -84,7 +133,11 @@ export function YouTubeStagePlayer({
                 <img
                   src={`https://i.ytimg.com/vi/${currentTrack.videoId}/hqdefault.jpg`}
                   alt={currentTrack.title}
-                  className="h-44 w-72 object-cover sm:h-56 sm:w-96"
+                  className={
+                    isPlayerFullscreen
+                      ? "h-72 w-[480px] max-w-[85vw] object-cover sm:h-96 sm:w-[640px]"
+                      : "h-44 w-72 object-cover sm:h-56 sm:w-96"
+                  }
                 />
               </div>
             </div>
@@ -114,6 +167,60 @@ export function YouTubeStagePlayer({
               {t.enableAudioButton}
             </button>
             <p className="mt-3 max-w-sm text-xs text-zinc-300">{t.enableAudioHint}</p>
+          </div>
+        )}
+
+        {/* Floating bottom bar when player itself is fullscreen */}
+        {isPlayerFullscreen && currentTrack && (
+          <div className="absolute inset-x-4 bottom-5 z-30 mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-black/70 px-5 py-3.5 shadow-2xl backdrop-blur-2xl">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-bold text-white">{currentTrack.title}</p>
+              <p className="truncate text-xs text-cyan-300">
+                {t.requestedBy} {currentTrack.requestedBy} · {currentTrack.channelTitle}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {onTogglePlayPause && (
+                <button
+                  type="button"
+                  onClick={onTogglePlayPause}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-extrabold text-zinc-950 transition hover:bg-zinc-200"
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="h-3.5 w-3.5 fill-current" />
+                      {t.pause}
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                      {t.play}
+                    </>
+                  )}
+                </button>
+              )}
+
+              {onSkipNext && (
+                <button
+                  type="button"
+                  onClick={onSkipNext}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-white/20"
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                  {t.skipNext}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void toggleFullscreen()}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-white/20"
+              >
+                <Minimize2 className="h-3.5 w-3.5" />
+                {t.exitFullscreen}
+              </button>
+            </div>
           </div>
         )}
       </div>

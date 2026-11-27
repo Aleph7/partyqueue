@@ -88,6 +88,9 @@ export interface TranslationDictionary {
   trackSkipped: string;
   connectionError: string;
   shortcutsHint: string;
+  fullscreen: string;
+  exitFullscreen: string;
+  playerFullscreen: string;
 }
 
 export const translations: Record<Language, TranslationDictionary> = {
@@ -178,7 +181,10 @@ export const translations: Record<Language, TranslationDictionary> = {
     videoRestrictedSkipping: "Video restricted by owner, skipping to next...",
     trackSkipped: "Skipped to next track.",
     connectionError: "Sync connection issue. Retrying automatically...",
-    shortcutsHint: "Space: Play/Pause · Shift+N: Skip",
+    shortcutsHint: "Space: Play/Pause · Shift+N: Skip · F: Fullscreen",
+    fullscreen: "Fullscreen",
+    exitFullscreen: "Exit Fullscreen",
+    playerFullscreen: "Fullscreen Player",
   },
   th: {
     appName: "PartyQueue",
@@ -267,6 +273,9 @@ export const translations: Record<Language, TranslationDictionary> = {
     videoRestrictedSkipping: "วิดีโอนี้ถูกจำกัดการฝัง กำลังข้ามไปเพลงถัดไป...",
     trackSkipped: "ข้ามไปยังเพลงถัดไปแล้ว",
     connectionError: "การเชื่อมต่อสะดุด กำลังเชื่อมต่อใหม่อัตโนมัติ...",
-    shortcutsHint: "Space: เล่น/หยุด · Shift+N: ข้ามเพลง",
+    shortcutsHint: "Space: เล่น/หยุด · Shift+N: ข้ามเพลง · F: เต็มหน้าจอ",
+    fullscreen: "เต็มหน้าจอ",
+    exitFullscreen: "ออกจากเต็มจอ",
+    playerFullscreen: "ขยายวิดีโอเต็มจอ",
   },
 };
